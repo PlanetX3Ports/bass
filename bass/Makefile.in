@@ -1,0 +1,51 @@
+source_dir = @srcdir@
+build_dir = @builddir@
+
+objdir = $(build_dir)/obj
+
+application := bass
+install := @INSTALL@
+CC := @CC@
+CXX := @CXX@
+CXX_DIALECT := c++11
+compiler= $(CXX)
+flags := @CXXFLAGS@ -std=$(CXX_DIALECT) -O3 -fomit-frame-pointer -I@srcdir@/..
+link := @LDFLAGS@ -s
+#flags := $(flags) -g -I..
+#link := $(link)
+objects := $(objdir)/bass.o
+
+
+all: $(build_dir)/Makefile dir $(objects)
+	$(compiler) -o $(application) $(objects) $(link)
+
+$(build_dir)/Makefile: $(source_dir)/Makefile.in $(build_dir)/config.status
+	$(build_dir)/config.status Makefile
+
+$(build_dir)/config.status: $(source_dir)/configure
+	$(src_dir)/config.status --recheck
+
+$(source_dir)/configure: $(source_dir)/configure.ac
+	autoreconf $(src_dir)
+
+dir:
+	@mkdir -p $(objdir)
+
+$(objdir)/bass.o: $(source_dir)/bass.cpp $(source_dir)/bass.hpp $(call rwildcard,$(source_dir)/core/*) $(call rwildcard,$(source_dir)/arch/*)
+	$(compiler) $(cppflags) $(flags) -o $(objdir)/bass.o -c $(source_dir)/bass.cpp
+
+install:
+	$(install)  $(application) @bindir@/$(application)
+
+uninstall:
+ifneq ($(shell id -un),root)
+	$(error "make uninstall must be run as root")
+else
+	rm @bindir@/$(application)
+endif
+
+clean:
+	-@$(call delete,obj/*.o)
+
+test:
+	make -C .test
